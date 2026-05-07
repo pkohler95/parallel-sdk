@@ -86,6 +86,83 @@ const all = await parallel.wallets.list();
 | `entities.get(id)` | Returns the entity plus aggregate stats: `totalSpent`, `totalReceived`, `net`, `transactionCount`, and the entity's transaction list. |
 | `entities.delete(id)` | Deletes the entity. Existing transactions stay; their `entity` becomes `null` (untagged). |
 
+## Agent tools
+
+`@parallel/sdk` ships a small framework-agnostic tool layer so the agents *inside* your app can act on their own wallet. Bind to a wallet (and optionally an entity) and pass the result to whatever LLM framework you're using.
+
+```ts
+import {
+  Parallel,
+  agentTools,
+  toOpenAITools,
+  toAnthropicTools,
+  executeToolCall,
+} from "@parallel/sdk";
+
+const parallel = new Parallel({ apiKey: process.env.PARALLEL_API_KEY! });
+
+// Build the tool set for one agent.
+const tools = agentTools(parallel, {
+  walletId: agent.walletId,
+  entityId: agent.entityId, // optional — auto-attributes outgoing transfers
+});
+```
+
+Four tools come back:
+
+| Tool | What it does |
+| --- | --- |
+| `get_wallet_balance` | Returns the wallet's current USDC balance + address. |
+| `get_wallet_info` | Returns wallet name, address, balance, attached entities, and which entity (if any) this agent is bound to. |
+| `get_recent_transactions` | Returns the wallet's most recent transactions (incoming, outgoing, and faucet). Optional `limit` argument (1-50). |
+| `send_usdc` | Sends USDC to a `to` address. Returns `{ txHash, explorerUrl, status }`. Auto-attributed to the bound entity if one was provided. |
+
+### OpenAI
+
+```ts
+const response = await openai.chat.completions.create({
+  model: "gpt-4o",
+  messages,
+  tools: toOpenAITools(tools),
+});
+
+for (const call of response.choices[0].message.tool_calls ?? []) {
+  const result = await executeToolCall(
+    tools,
+    call.function.name,
+    JSON.parse(call.function.arguments),
+  );
+  messages.push({
+    role: "tool",
+    tool_call_id: call.id,
+    content: JSON.stringify(result),
+  });
+}
+```
+
+### Anthropic
+
+```ts
+const response = await anthropic.messages.create({
+  model: "claude-opus-4-7",
+  tools: toAnthropicTools(tools),
+  messages,
+});
+
+for (const block of response.content) {
+  if (block.type !== "tool_use") continue;
+  const result = await executeToolCall(
+    tools,
+    block.name,
+    block.input as Record<string, unknown>,
+  );
+  // append a tool_result block to the next user turn:
+  // { type: "tool_result", tool_use_id: block.id, content: JSON.stringify(result) }
+}
+```
+
+`executeToolCall` is just a `find(...)` + `execute(args)` — feel free to dispatch yourself if you'd rather keep control.
+
 ## Errors
 
 Failed requests throw `ParallelError` with `status` (HTTP status) and `message`.
@@ -104,6 +181,11 @@ try {
 ```
 
 ## Changelog
+
+### 0.3.0
+
+- New: `agentTools(parallel, { walletId, entityId? })` — a framework-agnostic tool layer for agent loops.
+- New: `toOpenAITools` / `toAnthropicTools` adapters and an `executeToolCall` dispatcher.
 
 ### 0.2.0
 

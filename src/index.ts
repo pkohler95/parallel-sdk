@@ -13,6 +13,16 @@ import type {
 } from "./types";
 
 export * from "./types";
+export {
+  agentTools,
+  type AgentToolOptions,
+  type ParallelTool,
+} from "./tools";
+export {
+  executeToolCall,
+  toAnthropicTools,
+  toOpenAITools,
+} from "./adapters";
 
 const DEFAULT_BASE_URL = "http://localhost:3000";
 
