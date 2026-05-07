@@ -1,0 +1,58 @@
+{
+  "name": "@parallel/sdk",
+  "version": "0.2.0",
+  "description": "Parallel — wallets for the agent economy. The official TypeScript SDK.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pkohler95/parallel-sdk.git"
+  },
+  "homepage": "https://github.com/pkohler95/parallel-sdk#readme",
+  "bugs": {
+    "url": "https://github.com/pkohler95/parallel-sdk/issues"
+  },
+  "keywords": [
+    "parallel",
+    "agents",
+    "wallets",
+    "usdc",
+    "stripe-for-agents",
+    "cdp",
+    "base"
+  ],
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": {
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
+      },
+      "require": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      }
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts --clean",
+    "dev": "tsup src/index.ts --format esm,cjs --dts --watch",
+    "prepare": "npm run build"
+  },
+  "devDependencies": {
+    "tsup": "^8.5.1",
+    "typescript": "^5.7.3"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
